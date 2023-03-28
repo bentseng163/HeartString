@@ -1,0 +1,178 @@
+import React, { useState, useEffect } from "react";
+import backgroundImage from './paper.jpg';
+
+
+const PoemGenerator = () => {
+  const [theme, setTheme] = useState("");
+  const [poem, setPoem] = useState("");
+  const [poemTitle, setPoemTitle] = useState("");
+  const [poemImage, setPoemImage] = useState("");
+
+  const poemForm = ["modern poetry", "haiku", "Epigram ", "Acrostic", "free verse", "Tanka", "Cinquain"]
+  const peomMethod = ["Imagery", "metaphor", "metaphorical comparison", "repetition", "syntax", "allusion", "personification", "irony","symbolism", "foreshadowing", "hyperbole", "synecdoche", "parallelism", "Metonymy", "Juxtaposition"]
+  const artists = ["Victo Ngai", "Olimpia Zagnoli", "Malika Favre", "Tom Haugomat", "Jon Han", "Andrea Ucini", "Yuko Shimizu", "Jing Wei", "Sara Andreasson", "Andrew Fairclough"]
+
+  const randomElement = (arr) => {
+    const randomIndex = Math.floor(Math.random() * arr.length);
+    return arr[randomIndex];
+  };
+
+
+  const generatePoem = async () => {
+
+        console.log("Generating poem..."); 
+        setPoem("")
+
+        const form = randomElement(poemForm)
+        const method = randomElement(peomMethod)
+
+
+        console.log(form); 
+
+        // Call OpenAI API to generate poem based on user input theme
+        const poemPrompt = "Write a short " +  form + " poem that can evoke readers feeling of " + theme + " within 60 words. Use vivid imagery. Use " +  method + ". Use poetic language."
+
+        console.log(poemPrompt)
+
+        //  Set random temperature for poem 
+        const randomTemperature = (Math.random() * 2).toFixed(1);
+        console.log(randomTemperature)
+
+
+
+        const response = await fetch("https://api.openai.com/v1/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer OpenAI API KEY",
+          },
+          body: JSON.stringify({
+            model: "text-davinci-003",
+            prompt: poemPrompt,
+            max_tokens: 200,
+            // temperature: randomTemperature,
+            n: 1
+          }),
+        });
+        const data = await response.json();
+        console.log(data)
+        console.log(data.choices[0])
+        console.log(data.choices[0].text)
+
+        const poemText = data.choices[0].text.replace(/\\n/g,'{"\n"}');
+        console.log(poemText)
+
+        setPoem(poemText)
+
+        // Call OpenAI API to generate poem title based on poem
+
+        console.log(poem)
+
+        const titlePrompt = "Write a title for this poem: " + poemText
+
+        console.log(titlePrompt)
+
+
+
+        const titleResponse = await fetch("https://api.openai.com/v1/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer OpenAI API KEY",
+          },
+          body: JSON.stringify({
+            model: "text-davinci-003",
+            prompt: titlePrompt,
+            max_tokens: 200,
+            temperature: 1,
+            n: 1
+          }),
+        });
+        const title = await titleResponse.json();
+        console.log(title.choices[0].text)
+
+        setPoemTitle(title.choices[0].text)
+
+
+
+
+        //Call OpenAI API to generate image based on poem title
+
+        console.log(poemTitle)
+
+        const artist = randomElement(artists)
+
+        const imagePrompt = title.choices[0].text + " by " + "Illustrator Jun Cen " + "Risograph"
+        console.log(imagePrompt)
+
+
+
+
+
+
+        const imageResponse = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer OpenAI API KEY",
+            },
+            body: JSON.stringify({
+                prompt: imagePrompt,
+                n: 1,
+                size: "1024x1024",
+                response_format: "url"
+                }),
+            });
+
+            const image = await imageResponse.json();
+            console.log(image.data)
+            console.log(image.data[0].url)
+            setPoemImage(image.data[0].url)
+        
+
+ 
+    };
+
+
+  return (
+    <div >
+      <h1>Heart String</h1>
+      <div className="gen">
+        <input
+            type="text"
+            placeholder="Enter theme of poem"
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+        />
+        <button onClick={generatePoem}>Generate</button>
+
+      </div>
+
+      
+      <div className="poem-container"> 
+
+            <div className="poem-text" style={{ backgroundImage: `url(${backgroundImage})` }} >{poem.split("\n").map((line, index) => (
+                <p key={index}>{line}</p>
+            ))}</div>
+
+            {poemImage && (
+                <div className="poem-image">
+                <img src={poemImage} alt="Generated by OpenAI's Dall-E API" />
+                </div>
+            )}
+
+
+      </div>
+
+      <button className="next-button" onClick={generatePoem}>Next Page</button>
+
+
+
+
+
+    
+    </div>
+  );
+};
+
+export default PoemGenerator;
